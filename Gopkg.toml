@@ -1,0 +1,37 @@
+# Gopkg.toml example
+#
+# Refer to https://golang.github.io/dep/docs/Gopkg.toml.html
+# for detailed Gopkg.toml documentation.
+#
+required = [
+  "golang.org/x/net/context",
+  "golang.org/x/net/context",
+	"golang.org/x/oauth2",
+	"golang.org/x/oauth2/google",
+	"google.golang.org/api/gmail/v1",
+  "github.com/jessevdk/go-flags"
+  ]
+# ignored = ["github.com/user/project/pkgX", "bitbucket.org/user/project/pkgA/pkgY"]
+#
+# [[constraint]]
+#   name = "github.com/user/project"
+#   version = "1.0.0"
+#
+[[constraint]]
+  name = "github.com/jessevdk/go-flags"
+  branch = "master"
+  source = "github.com/jessevdk/go-flags"
+#
+# [[override]]
+#   name = "github.com/x/y"
+#   version = "2.4.0"
+#
+# [prune]
+#   non-go = false
+#   go-tests = true
+#   unused-packages = true
+
+
+[prune]
+  go-tests = true
+  unused-packages = true
