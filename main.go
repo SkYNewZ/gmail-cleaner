@@ -87,6 +87,7 @@ func saveToken(path string, token *oauth2.Token) {
 
 func searchMail(search string, service *gmail.Service) []MessageElement {
 	// getting all messages corresponding to this criteria
+	log.Println("Searching messages with this criteria...")
 	msgs := []gmail.Message{}
 	pageToken := ""
 	for {
@@ -190,10 +191,21 @@ func main() {
 	}
 
 	messages := searchMail(opts.Search, srv)
-	if len(messages) > 1 {
+	if len(messages) > 0 {
 		for _, message := range messages {
 			fmt.Printf("==> \"%s\" - %s\n", message.subject, message.date)
 		}
-		deleteMessages(messages, opts.Delete, srv)
+
+		fmt.Println("Are you sure you want to delete/trash these messages ? (yes/No)")
+		var confirmation string
+		if _, err := fmt.Scanln(&confirmation); err != nil {
+			log.Fatalf("Unable to read response: %v", err)
+		}
+
+		if confirmation == "Y" || confirmation == "y" || confirmation == "yes" {
+			deleteMessages(messages, opts.Delete, srv)
+		} else {
+			log.Println("Aborted")
+		}
 	}
 }
