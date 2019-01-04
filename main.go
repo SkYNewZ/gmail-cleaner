@@ -18,9 +18,9 @@ import (
 
 // AppConfig application configuration
 type AppConfig struct {
-	Search             string `short:"s" long:"search" description:"Search criteria" required:"true"`
-	Delete             bool   `short:"d" long:"delete" description:"Delete messages ?" required:"false"`
-	CredentialFilePath string `long:"credentials-file" description:"Credentials file path as json for using GmailAPI" required:"false" default:"credentials.json"`
+	Search             []string `short:"s" long:"search" description:"Search criteria" required:"true"`
+	Delete             bool     `short:"d" long:"delete" description:"Delete messages ?" required:"false"`
+	CredentialFilePath string   `long:"credentials-file" description:"Credentials file path as json for using GmailAPI" required:"false" default:"credentials.json"`
 }
 
 // MessageElement represents our custom Message
@@ -85,60 +85,65 @@ func saveToken(path string, token *oauth2.Token) {
 	json.NewEncoder(f).Encode(token)
 }
 
-func searchMail(search string, service *gmail.Service) []MessageElement {
+func searchMail(queries []string, service *gmail.Service) []MessageElement {
 	// getting all messages corresponding to this criteria
-	log.Println("Searching messages with this criteria...")
-	msgs := []gmail.Message{}
+	msgs := []MessageElement{}
 	pageToken := ""
-	for {
-		req := service.Users.Messages.List("me").Q(search)
-		if pageToken != "" {
-			req.PageToken(pageToken)
-		}
-		r, err := req.Do()
-		if err != nil {
-			log.Fatalf("Unable to retrieve messages: %v", err)
-		}
 
-		for _, m := range r.Messages {
-			msg, err := service.Users.Messages.Get("me", m.Id).Do()
+	// for each query
+	for _, search := range queries {
+		log.Printf("Searching messages with \"%s\"", search)
+
+		// list all messages corresponding to this query
+		for {
+			req := service.Users.Messages.List("me").Q(search)
+			if pageToken != "" {
+				req.PageToken(pageToken)
+			}
+			r, err := req.Do()
 			if err != nil {
-				log.Fatalf("Unable to retrieve message %v: %v", m.Id, err)
+				log.Fatalf("Unable to retrieve messages: %v", err)
 			}
 
-			msgs = append(msgs, *msg)
-		}
+			for _, m := range r.Messages {
+				// get details for each messages corresponding to query
+				msg, err := service.Users.Messages.Get("me", m.Id).Do()
+				if err != nil {
+					log.Fatalf("Unable to retrieve message %v: %v", m.Id, err)
+				}
 
-		if r.NextPageToken == "" {
-			break
-		}
-		pageToken = r.NextPageToken
-	}
+				// get only required values
+				var date = ""
+				var subject = ""
+				for _, h := range msg.Payload.Headers {
+					if h.Name == "Date" {
+						date = h.Value
+					} else if h.Name == "Subject" {
+						subject = h.Value
+						break
+					}
+				}
+				fmt.Printf("==> \"%s\" - %s\n", subject, date)
+				// append to final list
+				msgs = append(msgs, MessageElement{
+					date:    date,
+					id:      m.Id,
+					subject: subject,
+				})
+			}
 
-	// format list
-	var messagesList = []MessageElement{}
-	for _, m := range msgs {
-		var date = ""
-		var subject = ""
-
-		for _, h := range m.Payload.Headers {
-			if h.Name == "Date" {
-				date = h.Value
-			} else if h.Name == "Subject" {
-				subject = h.Value
+			// if end of list, stop execution
+			if r.NextPageToken == "" {
 				break
 			}
-		}
 
-		messagesList = append(messagesList, MessageElement{
-			date:    date,
-			id:      m.Id,
-			subject: subject,
-		})
+			// else, take next page
+			pageToken = r.NextPageToken
+		}
 	}
 
-	log.Printf("%v messages found with this criteria...\n", len(messagesList))
-	return messagesList
+	log.Printf("%v messages found with these criteria...\n", len(msgs))
+	return msgs
 }
 
 func deleteMessages(messages []MessageElement, deleteMessage bool, service *gmail.Service) {
@@ -192,10 +197,6 @@ func main() {
 
 	messages := searchMail(opts.Search, srv)
 	if len(messages) > 0 {
-		for _, message := range messages {
-			fmt.Printf("==> \"%s\" - %s\n", message.subject, message.date)
-		}
-
 		fmt.Println("Are you sure you want to delete/trash these messages ? (yes/No)")
 		var confirmation string
 		if _, err := fmt.Scanln(&confirmation); err != nil {

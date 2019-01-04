@@ -43,6 +43,7 @@ Help Options:
   -h, --help              Show this help message
 ```
 
+> You can use multiple `--search`
 > For example, if your `credentials.json` is located into your `$HOME`, run `gmail-cleaner --credentials-file ~/credentials.json ...`
 
 ## Example
@@ -53,6 +54,9 @@ gmail-cleaner --search "from:(github.com)" --credentials-file ~/credentials.json
 
 # Delete **permanently** messages with subject "[GitHub] A third-party OAuth application has been added to your account"
 gmail-cleaner --search "subject:([GitHub] A third-party OAuth application has been added to your account)" --delete --credentials-file ~/Downloads/credentials.json
+
+# Delete **permanently** messages with subject "[GitHub] A third-party OAuth application has been added to your account" and messages from "github.com"
+gmail-cleaner --search "from:(github.com)" --search "subject:([GitHub] A third-party OAuth application has been added to your account)" --credentials-file ~/credentials.json --delete
 ```
 
 > For more details about the Gmail search engine, checkout [docs](https://support.google.com/mail/answer/7190)
